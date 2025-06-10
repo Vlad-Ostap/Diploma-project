@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model bookings {
+  booking_id Int       @id @default(autoincrement())
+  status     String    @default("confirmed") @db.VarChar(20)
+  check_in   DateTime  @db.Date
+  check_out  DateTime  @db.Date
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  user_id    Int?
+  room_id    Int?
+  total_cost Decimal?  @db.Decimal(10, 2)
+  rooms      rooms?    @relation(fields: [room_id], references: [room_id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model conveniences {
+  convenience_id    Int                 @id @default(autoincrement())
+  name              String              @unique @db.VarChar(50)
+  room_conveniences room_conveniences[]
+}
+
+model reviews {
+  review_id  Int       @id @default(autoincrement())
+  user_id    Int?
+  room_id    Int?
+  rating     Int?
+  comment    String?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  rooms      rooms?    @relation(fields: [room_id], references: [room_id], onDelete: Cascade, onUpdate: NoAction)
+  users      users?    @relation(fields: [user_id], references: [user_id], onUpdate: NoAction)
+}
+
+model room_conveniences {
+  room_id        Int
+  convenience_id Int
+  conveniences   conveniences @relation(fields: [convenience_id], references: [convenience_id], onDelete: Cascade, onUpdate: NoAction)
+  rooms          rooms        @relation(fields: [room_id], references: [room_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([room_id, convenience_id])
+}
+
+model rooms {
+  room_id           Int                 @id @default(autoincrement())
+  room_count        Int?
+  type              String?             @db.VarChar(20)
+  price_per_night   Decimal             @db.Decimal(10, 2)
+  capacity          Int
+  description       String?
+  image             String?
+  title             String?             @db.VarChar(64)
+  bookings          bookings[]
+  reviews           reviews[]
+  room_conveniences room_conveniences[]
+  wishlist          wishlist[]
+}
+
+model users {
+  user_id       Int        @id @default(autoincrement())
+  name          String     @db.VarChar(128)
+  email         String     @unique @db.VarChar(128)
+  password_hash String
+  phone         String?    @db.VarChar(20)
+  created_at    DateTime?  @default(now()) @db.Timestamp(6)
+  role          String     @default("guest") @db.VarChar(20)
+  bookings      bookings[]
+  reviews       reviews[]
+  wishlist      wishlist[]
+}
+
+model wishlist {
+  wishlist_id Int       @id @default(autoincrement())
+  user_id     Int
+  room_id     Int
+  created_at  DateTime? @default(now()) @db.Timestamp(6)
+  rooms       rooms     @relation(fields: [room_id], references: [room_id], onDelete: Cascade, onUpdate: NoAction)
+  users       users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, room_id], map: "unique_user_room")
+}
